@@ -14,6 +14,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Testing**: Vitest (szybkie, kompatybilne z Vite)
 - **Version Control**: Git (main + develop workflow)
 
+## General
+Dobrze aby główny agent był raczej managerem i uruchamiał agentów specjalistów w celu implementacji konkretych funkcji lub podfunckji.
+Development, testowanie czy review powinno zawsze odbywać się równolegle jeżeli możliwe przy użyciu kilku agentów.
+
+## Test
+
+Pamiętaj o pisaniu testów.
+
+## Review
+
+Każdy zakończony kod powinien przejść review przez przynajmniej 2 analizujących kod agentów niezależnie.
+
+## Development
+
+Pisanie kodu powinno odbywać się z zachowaniem najwyższych standardów jakości.
+
 ---
 
 ## 🛠️ Komendy Development
