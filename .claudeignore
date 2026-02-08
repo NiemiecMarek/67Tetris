@@ -1,0 +1,46 @@
+# .claudeignore
+# Files to ignore when Claude reads project context
+# Similar to .gitignore but for token optimization
+
+# Dependencies (thousands of files, no need to read)
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Build outputs (generated, not source)
+dist/
+build/
+.cache/
+*.tsbuildinfo
+
+# Test coverage (generated reports)
+coverage/
+.nyc_output/
+
+# Environment & secrets (should never be in repo anyway)
+.env
+.env.local
+.env.*.local
+
+# IDE/Editor (user-specific, not project code)
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+*.sublime-workspace
+
+# Git internals
+.git/
+.gitignore
+
+# Temporary files
+*.tmp
+*.log
+temp/
+tmp/
+
+# OS files
+Thumbs.db
+.DS_Store
