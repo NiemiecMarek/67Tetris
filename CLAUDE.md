@@ -18,6 +18,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Dobrze aby główny agent był raczej managerem i uruchamiał agentów specjalistów w celu implementacji konkretych funkcji lub podfunckji.
 Development, testowanie czy review powinno zawsze odbywać się równolegle jeżeli możliwe przy użyciu kilku agentów.
 
+## Plan
+
+Always put plan in plan directory with convention plan/<feature_name>.md
+Plan each feature in spearate md file.md
+
+If possible assure that each phase in feature is testable by running game.
+
+Always use separate "Plan" agent for writing plan.
+
 ## Test
 
 Pamiętaj o pisaniu testów.
