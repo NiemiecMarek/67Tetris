@@ -63,6 +63,17 @@ export function isValidPosition(
  * Returns a new board with the piece cells written at the given position.
  * Each filled cell (1) in the piece matrix is set to the provided cellValue.
  * The input board is NOT mutated.
+ *
+ * IMPORTANT: Caller MUST validate the position using isValidPosition()
+ * before calling this function. This function does NOT validate - it will
+ * silently skip cells that fall outside board boundaries. Using an invalid
+ * position may result in incomplete piece placement.
+ *
+ * @param board The current game board (not mutated)
+ * @param pieceMatrix The piece shape matrix
+ * @param position Top-left position where piece should be placed
+ * @param cellValue The value to write for filled cells
+ * @returns A new board with the piece placed
  */
 export function placePiece(
   board: Grid,
@@ -70,9 +81,23 @@ export function placePiece(
   position: GridPosition,
   cellValue: CellValue,
 ): Grid {
-  // Deep-copy the board into a mutable structure
-  const newBoard: MutableGrid = board.map((row) => [...row]);
   const { row: startRow, col: startCol } = position;
+
+  // Determine which rows the piece will modify to avoid copying unaffected rows
+  const affectedRows = new Set<number>();
+  for (let r = 0; r < pieceMatrix.length; r++) {
+    const boardRow = startRow + r;
+    if (boardRow >= 0 && boardRow < BOARD_HEIGHT) {
+      if (pieceMatrix[r].some(cell => cell !== 0)) {
+        affectedRows.add(boardRow);
+      }
+    }
+  }
+
+  // Only copy affected rows; reuse unchanged row references
+  const newBoard: MutableGrid = board.map((row, idx) =>
+    affectedRows.has(idx) ? [...row] : row as CellValue[]
+  );
 
   for (let r = 0; r < pieceMatrix.length; r++) {
     for (let c = 0; c < pieceMatrix[r].length; c++) {

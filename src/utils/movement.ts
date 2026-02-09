@@ -20,8 +20,12 @@ import { getPieceMatrix } from './pieces';
 /**
  * Encodes a rotation transition as a string key for kick table lookup.
  * Format: "from>to" e.g. "0>1" for spawn->CW rotation.
+ * Only adjacent transitions are valid (CW: +1, CCW: -1 mod 4).
  */
 type KickKey = `${RotationState}>${RotationState}`;
+
+/** Kick table type: maps rotation transitions to kick offset arrays. */
+type KickTable = Readonly<Partial<Record<KickKey, readonly GridPosition[]>>>;
 
 function kickKey(from: RotationState, to: RotationState): KickKey {
   return `${from}>${to}`;
@@ -32,7 +36,7 @@ function kickKey(from: RotationState, to: RotationState): KickKey {
  * Source: https://tetris.fandom.com/wiki/SRS
  * Each rotation transition has 5 test positions (including the base position).
  */
-const STANDARD_KICKS: Readonly<Record<KickKey, readonly GridPosition[]>> = {
+const STANDARD_KICKS: KickTable = {
   // 0 -> 1 (spawn -> CW)
   [kickKey(0, 1)]: [
     { row: 0, col: 0 },
@@ -103,7 +107,7 @@ const STANDARD_KICKS: Readonly<Record<KickKey, readonly GridPosition[]>> = {
  * I-piece SRS wall kick offsets (different from standard pieces).
  * The I-piece has its own kick table due to its 4x4 bounding box.
  */
-const I_KICKS: Readonly<Record<KickKey, readonly GridPosition[]>> = {
+const I_KICKS: KickTable = {
   // 0 -> 1
   [kickKey(0, 1)]: [
     { row: 0, col: 0 },
@@ -174,7 +178,7 @@ const I_KICKS: Readonly<Record<KickKey, readonly GridPosition[]>> = {
  * O-piece has no wall kicks. It uses a single (0,0) test since the
  * bounding box and visual shape are identical for all rotations.
  */
-const O_KICKS: Readonly<Record<KickKey, readonly GridPosition[]>> = {
+const O_KICKS: KickTable = {
   [kickKey(0, 1)]: [{ row: 0, col: 0 }],
   [kickKey(1, 0)]: [{ row: 0, col: 0 }],
   [kickKey(1, 2)]: [{ row: 0, col: 0 }],
@@ -189,56 +193,25 @@ const O_KICKS: Readonly<Record<KickKey, readonly GridPosition[]>> = {
  * Simplified wall kick table for the special SIX and SEVEN pieces.
  * These have variable bounding boxes (3x2 / 2x3) so we use a simpler
  * kick set: base position + left/right + up adjustments.
+ * All 8 rotation transitions use the same kick pattern since the
+ * bounding box asymmetry makes directional kicks unnecessary.
  */
-const SPECIAL_KICKS: Readonly<Record<KickKey, readonly GridPosition[]>> = {
-  [kickKey(0, 1)]: [
-    { row: 0, col: 0 },
-    { row: 0, col: -1 },
-    { row: 0, col: 1 },
-    { row: -1, col: 0 },
-  ],
-  [kickKey(1, 0)]: [
-    { row: 0, col: 0 },
-    { row: 0, col: 1 },
-    { row: 0, col: -1 },
-    { row: -1, col: 0 },
-  ],
-  [kickKey(1, 2)]: [
-    { row: 0, col: 0 },
-    { row: 0, col: 1 },
-    { row: 0, col: -1 },
-    { row: -1, col: 0 },
-  ],
-  [kickKey(2, 1)]: [
-    { row: 0, col: 0 },
-    { row: 0, col: -1 },
-    { row: 0, col: 1 },
-    { row: -1, col: 0 },
-  ],
-  [kickKey(2, 3)]: [
-    { row: 0, col: 0 },
-    { row: 0, col: 1 },
-    { row: 0, col: -1 },
-    { row: -1, col: 0 },
-  ],
-  [kickKey(3, 2)]: [
-    { row: 0, col: 0 },
-    { row: 0, col: -1 },
-    { row: 0, col: 1 },
-    { row: -1, col: 0 },
-  ],
-  [kickKey(3, 0)]: [
-    { row: 0, col: 0 },
-    { row: 0, col: -1 },
-    { row: 0, col: 1 },
-    { row: -1, col: 0 },
-  ],
-  [kickKey(0, 3)]: [
-    { row: 0, col: 0 },
-    { row: 0, col: 1 },
-    { row: 0, col: -1 },
-    { row: -1, col: 0 },
-  ],
+const SPECIAL_KICKS_PATTERN: readonly GridPosition[] = [
+  { row: 0, col: 0 },   // Base position (no kick)
+  { row: 0, col: -1 },  // Kick left
+  { row: 0, col: 1 },   // Kick right
+  { row: -1, col: 0 },  // Kick up
+];
+
+const SPECIAL_KICKS: KickTable = {
+  [kickKey(0, 1)]: SPECIAL_KICKS_PATTERN,
+  [kickKey(1, 0)]: SPECIAL_KICKS_PATTERN,
+  [kickKey(1, 2)]: SPECIAL_KICKS_PATTERN,
+  [kickKey(2, 1)]: SPECIAL_KICKS_PATTERN,
+  [kickKey(2, 3)]: SPECIAL_KICKS_PATTERN,
+  [kickKey(3, 2)]: SPECIAL_KICKS_PATTERN,
+  [kickKey(3, 0)]: SPECIAL_KICKS_PATTERN,
+  [kickKey(0, 3)]: SPECIAL_KICKS_PATTERN,
 };
 
 // --- Kick table selection ---
@@ -248,7 +221,7 @@ const SPECIAL_KICKS: Readonly<Record<KickKey, readonly GridPosition[]>> = {
  */
 function getKickTable(
   pieceType: ActivePiece['type'],
-): Readonly<Record<KickKey, readonly GridPosition[]>> {
+): KickTable {
   switch (pieceType) {
     case 'I':
       return I_KICKS;
@@ -265,16 +238,20 @@ function getKickTable(
 // --- Public Movement API ---
 
 /**
- * Attempts to move the active piece one column to the left.
- * Returns a new ActivePiece with updated position, or null if the move
- * would result in a collision or out-of-bounds placement.
+ * Internal helper: attempts to move a piece by the given delta.
+ * Returns the new piece position if valid, null if blocked.
  */
-export function moveLeft(board: Grid, activePiece: ActivePiece): ActivePiece | null {
+function attemptMove(
+  board: Grid,
+  activePiece: ActivePiece,
+  rowDelta: number,
+  colDelta: number,
+): ActivePiece | null {
   const newPiece: ActivePiece = {
     ...activePiece,
     position: {
-      row: activePiece.position.row,
-      col: activePiece.position.col - 1,
+      row: activePiece.position.row + rowDelta,
+      col: activePiece.position.col + colDelta,
     },
   };
 
@@ -287,24 +264,20 @@ export function moveLeft(board: Grid, activePiece: ActivePiece): ActivePiece | n
 }
 
 /**
+ * Attempts to move the active piece one column to the left.
+ * Returns a new ActivePiece with updated position, or null if the move
+ * would result in a collision or out-of-bounds placement.
+ */
+export function moveLeft(board: Grid, activePiece: ActivePiece): ActivePiece | null {
+  return attemptMove(board, activePiece, 0, -1);
+}
+
+/**
  * Attempts to move the active piece one column to the right.
  * Returns a new ActivePiece with updated position, or null if invalid.
  */
 export function moveRight(board: Grid, activePiece: ActivePiece): ActivePiece | null {
-  const newPiece: ActivePiece = {
-    ...activePiece,
-    position: {
-      row: activePiece.position.row,
-      col: activePiece.position.col + 1,
-    },
-  };
-
-  const matrix = getPieceMatrix(newPiece.type, newPiece.rotation);
-  if (isValidPosition(board, matrix, newPiece.position)) {
-    return newPiece;
-  }
-
-  return null;
+  return attemptMove(board, activePiece, 0, 1);
 }
 
 /**
@@ -313,20 +286,7 @@ export function moveRight(board: Grid, activePiece: ActivePiece): ActivePiece | 
  * has landed (cannot move further down).
  */
 export function moveDown(board: Grid, activePiece: ActivePiece): ActivePiece | null {
-  const newPiece: ActivePiece = {
-    ...activePiece,
-    position: {
-      row: activePiece.position.row + 1,
-      col: activePiece.position.col,
-    },
-  };
-
-  const matrix = getPieceMatrix(newPiece.type, newPiece.rotation);
-  if (isValidPosition(board, matrix, newPiece.position)) {
-    return newPiece;
-  }
-
-  return null;
+  return attemptMove(board, activePiece, 1, 0);
 }
 
 /**
@@ -369,7 +329,7 @@ export function rotateCW(board: Grid, activePiece: ActivePiece): ActivePiece | n
   const newRotation = ((activePiece.rotation + 1) % 4) as RotationState;
   const kickTable = getKickTable(activePiece.type);
   const key = kickKey(activePiece.rotation, newRotation);
-  const kicks = kickTable[key];
+  const kicks = kickTable[key] ?? [];
 
   return tryRotate(board, activePiece, newRotation, kicks);
 }
@@ -383,7 +343,7 @@ export function rotateCCW(board: Grid, activePiece: ActivePiece): ActivePiece | 
   const newRotation = ((activePiece.rotation + 3) % 4) as RotationState;
   const kickTable = getKickTable(activePiece.type);
   const key = kickKey(activePiece.rotation, newRotation);
-  const kicks = kickTable[key];
+  const kicks = kickTable[key] ?? [];
 
   return tryRotate(board, activePiece, newRotation, kicks);
 }

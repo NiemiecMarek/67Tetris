@@ -31,13 +31,67 @@ Always use separate "Plan" agent for writing plan.
 
 Pamiętaj o pisaniu testów.
 
-## Review
-
-Każdy zakończony kod powinien przejść review przez przynajmniej 2 analizujących kod agentów niezależnie.
-
 ## Development
 
 Pisanie kodu powinno odbywać się z zachowaniem najwyższych standardów jakości.
+
+### Development Workflow (MUST FOLLOW)
+
+Każda faza implementacji MUSI przejść przez następujące kroki:
+
+1. **Implementation**:
+   - Użyj `senior-developer` agent do implementacji funkcjonalności
+   - Development może odbywać się równolegle (wiele agentów)
+
+2. **Testing**:
+   - Uruchom testy: `npm run test`
+   - Wszystkie testy MUSZĄ przechodzić (zielone)
+   - Fix failing tests przed przejściem dalej
+
+3. **Code Review (MANDATORY - BLOCKING)**:
+   - **ZAWSZE** uruchom **2 niezależnych** agentów `code-quality-reviewer`
+   - **Agent 1**: Perspektywa Performance & Technical Quality
+   - **Agent 2**: Perspektywa Architecture & Maintainability
+   - **Dlaczego 2 reviewerów?** Różne perspektywy łapią komplementarne problemy:
+     - Jeden może złapać performance issues
+     - Drugi może złapać design issues
+     - Razem dają pełniejszy obraz jakości kodu
+   - Uruchamiaj agentów **równolegle** (w jednym message, 2 Task calls)
+
+4. **Fix Issues**:
+   - **Priority 1 (Critical/Must-Fix)**: Napraw WSZYSTKIE przed przejściem dalej - BLOCKING
+   - **Priority 2 (Major/Should-Fix)**: Napraw lub udokumentuj dlaczego odkładasz
+   - **Priority 3 (Minor/Nice-to-Have)**: Opcjonalne, do rozważenia
+
+5. **Verification**:
+   - Uruchom `npm run test` ponownie po fixach
+   - Uruchom `npx tsc --noEmit` dla TypeScript validation
+   - Wszystko musi być zielone
+
+6. **Ready for Commit**:
+   - Kod jest gotowy do commit
+   - **NIGDY nie pytaj o commit** - user robi commity samodzielnie
+   - Nie proponuj commit messages
+   - Nie sugeruj `git commit`
+   - User zdecyduje kiedy i jak commitować
+
+**WAŻNE**: Kroki 1-5 są BLOKUJĄCE. Nie przechodzimy do kolejnej fazy bez ukończenia wszystkich kroków.
+
+### Code Review - Przykład użycia
+
+```
+Po zakończeniu implementacji i przejściu testów:
+
+// Uruchom 2 reviewerów RÓWNOLEGLE w jednym message:
+Task(subagent_type: code-quality-reviewer, description: "Review Phase X - Reviewer 1")
+Task(subagent_type: code-quality-reviewer, description: "Review Phase X - Reviewer 2")
+
+// Poczekaj na oba review
+// Przeanalizuj znaleziska
+// Napraw Priority 1 issues
+// Zweryfikuj testy
+// Gotowe - user zrobi commit
+```
 
 ---
 
@@ -195,7 +249,11 @@ develop → (larger testing) → merge to main (tagged release)
 - **Naming**: camelCase variables, PascalCase classes/scenes
 - **Files**: snake_case dla plików scenek (game_scene.ts, not GameScene.ts)
 - **Comments**: Angielski, ponad kod a nie pod nim
-- **Imports**: Relatywne imports w src/ (`./utils` nie `../src/utils`)
+- **Imports**:
+  - W `src/`: używaj relatywnych imports (`./utils`, `../types`)
+  - W `tests/`: używaj relatywnych imports do src (`../../src/types`, `../../src/utils/board`)
+  - **NIGDY nie używaj** `@/` alias imports w testach - tylko relative paths
+  - Konsystencja: wszystkie pliki testowe muszą używać tej samej konwencji
 
 ---
 

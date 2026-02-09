@@ -5,10 +5,10 @@
 // Tests verify correctness, immutability, and edge cases.
 // ============================================================================
 
-import type { ActivePiece, Grid, MutableGrid, CellValue, RotationState, GridPosition } from '@/types';
-import { createEmptyBoard, isValidPosition } from '@/utils/board';
-import { getPieceMatrix } from '@/utils/pieces';
-import { BOARD_WIDTH, BOARD_HEIGHT } from '@/utils/constants';
+import type { ActivePiece, Grid, MutableGrid, CellValue, RotationState, GridPosition } from '../../src/types';
+import { createEmptyBoard, isValidPosition } from '../../src/utils/board';
+import { getPieceMatrix } from '../../src/utils/pieces';
+import { BOARD_WIDTH, BOARD_HEIGHT } from '../../src/utils/constants';
 import {
   moveLeft,
   moveRight,
@@ -17,7 +17,7 @@ import {
   rotateCCW,
   hardDrop,
   tryRotate,
-} from '@/utils/movement';
+} from '../../src/utils/movement';
 
 // --- Test Helpers ---
 
