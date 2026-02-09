@@ -70,10 +70,12 @@ Każda faza implementacji MUSI przejść przez następujące kroki:
 
 6. **Ready for Commit**:
    - Kod jest gotowy do commit
-   - **NIGDY nie pytaj o commit** - user robi commity samodzielnie
-   - Nie proponuj commit messages
-   - Nie sugeruj `git commit`
-   - User zdecyduje kiedy i jak commitować
+   - **Podaj commit message** w formacie:
+     - Tytuł: krótki opis (max 72 znaki), imperatywny tryb
+     - Treść: lista zmian, co zostało dodane/naprawione
+     - Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
+   - **NIE uruchamiaj** `git commit` - user robi commit samodzielnie
+   - User zdecyduje kiedy commitować, ale dostaje gotowy message
 
 **WAŻNE**: Kroki 1-5 są BLOKUJĄCE. Nie przechodzimy do kolejnej fazy bez ukończenia wszystkich kroków.
 
@@ -90,7 +92,7 @@ Task(subagent_type: code-quality-reviewer, description: "Review Phase X - Review
 // Przeanalizuj znaleziska
 // Napraw Priority 1 issues
 // Zweryfikuj testy
-// Gotowe - user zrobi commit
+// Podaj commit message - user zrobi commit
 ```
 
 ---

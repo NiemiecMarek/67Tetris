@@ -15,6 +15,6 @@ export class BootScene extends Phaser.Scene {
     // Transition immediately to the placeholder scene.
     // In Phase 6A this will be replaced with asset loading + loading bar,
     // then transition to MenuScene.
-    this.scene.start('PlaceholderScene');
+    this.scene.start('GameScene');
   }
 }
