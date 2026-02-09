@@ -52,6 +52,10 @@ tmp/
 # Vitest
 .vitest/
 
+# Claude Code - local files (do not commit)
+.claude/settings.local.json
+.claude/agent-memory/
+
 # Optional: Keep these if you want to track them
 # .vscode/settings.json
 # .vscode/tasks.json
