@@ -19,15 +19,16 @@ import {
   drawGhostPiece,
   drawNextPiece,
   createHudTexts,
+  createLockFlash,
   BOARD_OFFSET_X,
   BOARD_OFFSET_Y,
   BOARD_PIXEL_WIDTH,
   BOARD_PIXEL_HEIGHT,
 } from '../sprites/boardRenderer';
+import { MemeWordPopup } from '../sprites/memeWordPopup';
+import { LineClearEffect } from '../sprites/lineClearEffect';
+import { Combo67Effect } from '../sprites/combo67Effect';
 import { CELL_SIZE } from '../utils/constants';
-
-// --- Meme word popup duration ---
-const MEME_WORD_DURATION_MS = 1500;
 
 /**
  * Brief delay before transitioning to GameOverScene after the game ends.
@@ -35,23 +36,6 @@ const MEME_WORD_DURATION_MS = 1500;
  * scene switch, avoiding an abrupt visual cut.
  */
 const GAME_OVER_TRANSITION_DELAY_MS = 500;
-
-// --- Meme word tier colors ---
-const MEME_TIER_COLORS: Record<string, string> = {
-  S: '#FF00FF',
-  A: '#39FF14',
-  B: '#1F8EF1',
-  C: '#89CFF0',
-  gameOver: '#8A1B1B',
-};
-
-const MEME_TIER_FONT_SIZE: Record<string, string> = {
-  S: '48px',
-  A: '36px',
-  B: '28px',
-  C: '22px',
-  gameOver: '40px',
-};
 
 export class GameScene extends Phaser.Scene {
   private gsm!: GameStateManager;
@@ -71,8 +55,7 @@ export class GameScene extends Phaser.Scene {
   private dropTimer: Phaser.Time.TimerEvent | undefined;
 
   /** Active meme word popup (if any). */
-  private memePopup: Phaser.GameObjects.Text | null = null;
-  private memePopupTimer: Phaser.Time.TimerEvent | undefined;
+  private memePopup: MemeWordPopup | null = null;
 
   /** Game over delay timer -- tracked for proper cleanup. */
   private gameOverTimer: Phaser.Time.TimerEvent | undefined;
@@ -128,9 +111,9 @@ export class GameScene extends Phaser.Scene {
       this.dropTimer.destroy();
       this.dropTimer = undefined;
     }
-    if (this.memePopupTimer) {
-      this.memePopupTimer.destroy();
-      this.memePopupTimer = undefined;
+    if (this.memePopup) {
+      this.memePopup.destroy();
+      this.memePopup = null;
     }
     if (this.gameOverTimer) {
       this.gameOverTimer.destroy();
@@ -182,16 +165,37 @@ export class GameScene extends Phaser.Scene {
         break;
 
       case 'hardDrop': {
+        const activePiece = this.gsm.state.activePiece;
         const result = this.gsm.hardDropActivePiece();
-        if (result?.memeWord) {
-          this.showMemeWord(result.memeWord);
+
+        if (result) {
+          // Play lock flash effect
+          if (activePiece) {
+            createLockFlash(this, activePiece);
+          }
+
+          // Play 67 combo effect if triggered (plays before line clear for dramatic impact)
+          if (result.combo67Triggered) {
+            this.showCombo67Effect();
+          }
+
+          // Play line clear effect if any rows were cleared
+          if (result.clearedRows.length > 0) {
+            this.showLineClearEffect(result.clearedRows);
+          }
+
+          // Show meme word popup if any
+          if (result.memeWord) {
+            this.showMemeWord(result.memeWord);
+          }
+
+          if (result.lockResult.isGameOver) {
+            this.handleGameOver();
+            return;
+          }
+          // Reset drop timer after hard drop (new piece just spawned)
+          this.resetDropTimer();
         }
-        if (result?.lockResult.isGameOver) {
-          this.handleGameOver();
-          return;
-        }
-        // Reset drop timer after hard drop (new piece just spawned)
-        this.resetDropTimer();
         break;
       }
     }
@@ -223,12 +227,30 @@ export class GameScene extends Phaser.Scene {
   private onDropTick(): void {
     if (this.gsm.state.phase !== 'playing') return;
 
+    const activePiece = this.gsm.state.activePiece;
     const result = this.gsm.tick();
 
     if (result.action === 'locked') {
+      // Play lock flash effect
+      if (activePiece) {
+        createLockFlash(this, activePiece);
+      }
+
+      // Play 67 combo effect if triggered (plays before line clear for dramatic impact)
+      if (result.combo67Triggered) {
+        this.showCombo67Effect();
+      }
+
+      // Play line clear effect if any rows were cleared
+      if (result.clearedRows.length > 0) {
+        this.showLineClearEffect(result.clearedRows);
+      }
+
+      // Show meme word popup if any
       if (result.memeWord) {
         this.showMemeWord(result.memeWord);
       }
+
       if (result.lockResult?.isGameOver) {
         this.handleGameOver();
         return;
@@ -276,47 +298,38 @@ export class GameScene extends Phaser.Scene {
   // -------------------------------------------------------------------------
 
   private showMemeWord(info: MemeWordInfo): void {
-    // Remove existing popup
+    // Remove existing popup if any
     if (this.memePopup) {
       this.memePopup.destroy();
       this.memePopup = null;
     }
-    if (this.memePopupTimer) {
-      this.memePopupTimer.destroy();
-      this.memePopupTimer = undefined;
-    }
-
-    const color = MEME_TIER_COLORS[info.tier] ?? '#FFFFFF';
-    const fontSize = MEME_TIER_FONT_SIZE[info.tier] ?? '24px';
 
     // Position popup near the event location on the board
     const x = BOARD_OFFSET_X + BOARD_PIXEL_WIDTH / 2;
     const y = BOARD_OFFSET_Y + info.position.row * CELL_SIZE;
     const clampedY = Math.max(BOARD_OFFSET_Y + 40, Math.min(y, BOARD_OFFSET_Y + BOARD_PIXEL_HEIGHT - 40));
 
-    this.memePopup = this.add.text(x, clampedY, info.word, {
-      fontSize,
-      color,
-      fontFamily: 'Arial Black, Arial, sans-serif',
-      fontStyle: 'bold',
-      stroke: '#000000',
-      strokeThickness: 4,
-    }).setOrigin(0.5).setDepth(100);
+    // Create and play new MemeWordPopup animation
+    this.memePopup = new MemeWordPopup(this, x, clampedY, info.word, info.tier);
+    this.add.existing(this.memePopup);
+    this.memePopup.play();
+  }
 
-    // Animate: float up and fade out
-    this.tweens.add({
-      targets: this.memePopup,
-      y: clampedY - 80,
-      alpha: 0,
-      duration: MEME_WORD_DURATION_MS,
-      ease: 'Power2',
-      onComplete: () => {
-        if (this.memePopup) {
-          this.memePopup.destroy();
-          this.memePopup = null;
-        }
-      },
-    });
+  /**
+   * Plays the line clear effect animation for the given row indices.
+   */
+  private showLineClearEffect(rowIndices: readonly number[]): void {
+    if (rowIndices.length === 0) return;
+    const effect = new LineClearEffect(this, rowIndices, BOARD_OFFSET_X, BOARD_OFFSET_Y, CELL_SIZE);
+    effect.play();
+  }
+
+  /**
+   * Plays the 67 combo effect animation (screen shake, flash, particles, text).
+   */
+  private showCombo67Effect(): void {
+    const effect = new Combo67Effect(this);
+    effect.play();
   }
 
   // -------------------------------------------------------------------------

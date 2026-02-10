@@ -18,6 +18,7 @@ import type {
   ScoreEvent,
   LineClearType,
   GridPosition,
+  MemeWordTier,
 } from '../types';
 import { CellValue } from '../types';
 import { BOARD_WIDTH, SOFT_DROP_SCORE_PER_CELL } from './constants';
@@ -85,6 +86,10 @@ export interface HardDropResult {
   readonly state: GameState;
   /** Meme word event if any, null otherwise. */
   readonly memeWord: MemeWordInfo | null;
+  /** Row indices that were cleared (empty if none). */
+  readonly clearedRows: readonly number[];
+  /** Whether a 67 combo was triggered. */
+  readonly combo67Triggered: boolean;
 }
 
 /** Result of a tick (auto-gravity). */
@@ -97,6 +102,10 @@ export interface TickResult {
   readonly lockResult: LockResult | null;
   /** Meme word to display, null if none. */
   readonly memeWord: MemeWordInfo | null;
+  /** Row indices that were cleared (empty if none). */
+  readonly clearedRows: readonly number[];
+  /** Whether a 67 combo was triggered. */
+  readonly combo67Triggered: boolean;
 }
 
 /** Result of a soft drop (one row down). */
@@ -112,7 +121,7 @@ export interface SoftDropResult {
 /** Meme word information for display. */
 export interface MemeWordInfo {
   readonly word: string;
-  readonly tier: string;
+  readonly tier: MemeWordTier;
   readonly position: GridPosition;
 }
 
@@ -351,6 +360,8 @@ export class GameStateManager {
       lockResult,
       state: this._state,
       memeWord,
+      clearedRows: lockResult.clearedRows,
+      combo67Triggered: lockResult.is67Combo,
     };
   }
 
@@ -364,7 +375,7 @@ export class GameStateManager {
    */
   tick(): TickResult {
     if (!this.canAct()) {
-      return { action: 'none', state: this._state, lockResult: null, memeWord: null };
+      return { action: 'none', state: this._state, lockResult: null, memeWord: null, clearedRows: [], combo67Triggered: false };
     }
 
     const piece = this._state.activePiece!;
@@ -372,12 +383,19 @@ export class GameStateManager {
 
     if (moved) {
       this._state = { ...this._state, activePiece: moved };
-      return { action: 'moved', state: this._state, lockResult: null, memeWord: null };
+      return { action: 'moved', state: this._state, lockResult: null, memeWord: null, clearedRows: [], combo67Triggered: false };
     }
 
     // Piece can't move down -- lock it
     const { lockResult, memeWord } = this.lockPiece();
-    return { action: 'locked', state: this._state, lockResult, memeWord };
+    return {
+      action: 'locked',
+      state: this._state,
+      lockResult,
+      memeWord,
+      clearedRows: lockResult.clearedRows,
+      combo67Triggered: lockResult.is67Combo,
+    };
   }
 
   // -------------------------------------------------------------------------

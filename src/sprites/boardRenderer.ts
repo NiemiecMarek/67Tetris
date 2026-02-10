@@ -34,14 +34,26 @@ export const BOARD_PIXEL_HEIGHT = BOARD_HEIGHT * CELL_SIZE;
 /** Alpha for ghost piece rendering. */
 const GHOST_ALPHA = 0.25;
 
+/** Alpha for the ghost piece outline border. */
+const GHOST_OUTLINE_ALPHA = 0.6;
+
+/** Line width for the ghost piece outline. */
+const GHOST_OUTLINE_WIDTH = 2;
+
 /** Alpha for grid lines. */
 const GRID_LINE_ALPHA = 0.15;
 
-/** Glow line width for neon effect. */
-const GLOW_LINE_WIDTH = 2;
+/** Glow line width for neon effect (inner glow). */
+const GLOW_LINE_WIDTH = 1;
+
+/** Line width for the outer glow border. */
+const OUTER_GLOW_LINE_WIDTH = 2;
 
 /** Inset pixels for cells (creates gap between blocks). */
 const CELL_INSET = 1;
+
+/** Duration of the lock flash effect in milliseconds. */
+const LOCK_FLASH_DURATION_MS = 200;
 
 // --- Next piece preview layout ---
 
@@ -179,6 +191,7 @@ export function drawGhostPiece(
 
   const matrix = getPieceMatrix(ghostPiece.type, ghostPiece.rotation);
   const color = PIECE_COLORS[ghostPiece.type];
+  const colorInt = hexToInt(color);
 
   for (let r = 0; r < matrix.length; r++) {
     for (let c = 0; c < matrix[r].length; c++) {
@@ -190,7 +203,21 @@ export function drawGhostPiece(
       if (boardRow < 0 || boardRow >= BOARD_HEIGHT) continue;
       if (boardCol < 0 || boardCol >= BOARD_WIDTH) continue;
 
-      drawCell(graphics, boardRow, boardCol, color, GHOST_ALPHA);
+      // Translucent fill
+      const x = BOARD_OFFSET_X + boardCol * CELL_SIZE + CELL_INSET;
+      const y = BOARD_OFFSET_Y + boardRow * CELL_SIZE + CELL_INSET;
+      const size = CELL_SIZE - CELL_INSET * 2;
+
+      graphics.fillStyle(colorInt, GHOST_ALPHA * 0.5);
+      graphics.fillRect(x, y, size, size);
+
+      // Distinct dashed-style outline: draw corner marks for a unique look
+      graphics.lineStyle(GHOST_OUTLINE_WIDTH, colorInt, GHOST_OUTLINE_ALPHA);
+      graphics.strokeRect(x, y, size, size);
+
+      // Inner white highlight for visibility against dark backgrounds
+      graphics.lineStyle(1, 0xffffff, GHOST_ALPHA * 0.4);
+      graphics.strokeRect(x + 1, y + 1, size - 2, size - 2);
     }
   }
 }
@@ -300,11 +327,94 @@ export function createHudTexts(
 }
 
 // ============================================================================
+// Lock flash effect
+// ============================================================================
+
+/**
+ * Creates a brief white flash effect at the position of a just-locked piece.
+ * The flash fades out over LOCK_FLASH_DURATION_MS. Returns a Graphics object
+ * that self-destructs after the animation completes -- caller does not need
+ * to clean it up.
+ *
+ * Call this from GameScene immediately when a piece locks.
+ */
+export function createLockFlash(
+  scene: Phaser.Scene,
+  piece: ActivePiece,
+): Phaser.GameObjects.Graphics {
+  const matrix = getPieceMatrix(piece.type, piece.rotation);
+  const flashGraphics = scene.add.graphics();
+  flashGraphics.setDepth(50);
+
+  // Draw white rectangles over each cell of the locked piece
+  for (let r = 0; r < matrix.length; r++) {
+    for (let c = 0; c < matrix[r].length; c++) {
+      if (matrix[r][c] === 0) continue;
+
+      const boardRow = piece.position.row + r;
+      const boardCol = piece.position.col + c;
+
+      if (boardRow < 0 || boardRow >= BOARD_HEIGHT) continue;
+      if (boardCol < 0 || boardCol >= BOARD_WIDTH) continue;
+
+      const x = BOARD_OFFSET_X + boardCol * CELL_SIZE;
+      const y = BOARD_OFFSET_Y + boardRow * CELL_SIZE;
+
+      flashGraphics.fillStyle(0xffffff, 0.8);
+      flashGraphics.fillRect(x, y, CELL_SIZE, CELL_SIZE);
+    }
+  }
+
+  // Fade out and self-destruct
+  scene.tweens.add({
+    targets: flashGraphics,
+    alpha: 0,
+    duration: LOCK_FLASH_DURATION_MS,
+    ease: 'Quad.easeOut',
+    onComplete: () => {
+      flashGraphics.destroy();
+    },
+  });
+
+  return flashGraphics;
+}
+
+// ============================================================================
 // Internal helpers
 // ============================================================================
 
 /**
- * Draws a single cell on the board with neon glow effect.
+ * Brightens a hex color integer by blending it toward white.
+ * Factor 0 = original color, 1 = pure white.
+ */
+function brightenColor(color: number, factor: number): number {
+  const r = (color >> 16) & 0xff;
+  const g = (color >> 8) & 0xff;
+  const b = color & 0xff;
+  const nr = Math.min(255, Math.round(r + (255 - r) * factor));
+  const ng = Math.min(255, Math.round(g + (255 - g) * factor));
+  const nb = Math.min(255, Math.round(b + (255 - b) * factor));
+  return (nr << 16) | (ng << 8) | nb;
+}
+
+/**
+ * Darkens a hex color integer by blending it toward black.
+ * Factor 0 = original color, 1 = pure black.
+ */
+function darkenColor(color: number, factor: number): number {
+  const r = (color >> 16) & 0xff;
+  const g = (color >> 8) & 0xff;
+  const b = color & 0xff;
+  const nr = Math.round(r * (1 - factor));
+  const ng = Math.round(g * (1 - factor));
+  const nb = Math.round(b * (1 - factor));
+  return (nr << 16) | (ng << 8) | nb;
+}
+
+/**
+ * Draws a single cell on the board with double neon glow effect.
+ * Outer glow: darker shade, thicker line.
+ * Inner glow: lighter shade, thinner line.
  */
 function drawCell(
   graphics: Phaser.GameObjects.Graphics,
@@ -327,7 +437,13 @@ function drawCell(
   graphics.fillRect(x, y, size, 2);
   graphics.fillRect(x, y, 2, size);
 
-  // Neon glow border
-  graphics.lineStyle(GLOW_LINE_WIDTH, colorInt, alpha * 0.5);
-  graphics.strokeRect(x - 1, y - 1, size + 2, size + 2);
+  // Outer glow border (darker shade, thicker)
+  const outerColor = darkenColor(colorInt, 0.3);
+  graphics.lineStyle(OUTER_GLOW_LINE_WIDTH, outerColor, alpha * 0.4);
+  graphics.strokeRect(x - 2, y - 2, size + 4, size + 4);
+
+  // Inner glow border (lighter shade, thinner)
+  const innerColor = brightenColor(colorInt, 0.4);
+  graphics.lineStyle(GLOW_LINE_WIDTH, innerColor, alpha * 0.6);
+  graphics.strokeRect(x, y, size, size);
 }

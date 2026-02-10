@@ -29,6 +29,12 @@ const BAR_BORDER_RADIUS = 4;
 /** Neon glow border width for block textures. */
 const TEXTURE_GLOW_WIDTH = 2;
 
+/** Size (px) of the particle circle texture used by visual effects. */
+const PARTICLE_TEXTURE_SIZE = 16;
+
+/** Texture key for the shared white circle particle. */
+export const PARTICLE_TEXTURE_KEY = 'particle_circle';
+
 /** Delay (ms) after loading completes before scene transition. */
 const TRANSITION_DELAY_MS = 500;
 
@@ -83,6 +89,7 @@ export class BootScene extends Phaser.Scene {
 
   create(): void {
     this.generateBlockTextures();
+    this.generateParticleTexture();
     this.transitionToGame();
   }
 
@@ -267,6 +274,31 @@ export class BootScene extends Phaser.Scene {
       graphics.generateTexture(textureKey, size, size);
       graphics.destroy();
     }
+  }
+
+  // ==========================================================================
+  // Particle texture generation
+  // ==========================================================================
+
+  /**
+   * Generates a small white circle texture used as the base particle for
+   * line clear and 67 combo visual effects. Tinted at runtime via emitter config.
+   */
+  private generateParticleTexture(): void {
+    if (this.textures.exists(PARTICLE_TEXTURE_KEY)) return;
+
+    const size = PARTICLE_TEXTURE_SIZE;
+    const half = size / 2;
+    const graphics = this.add.graphics();
+
+    // Soft white circle with slight gradient feel (center brighter)
+    graphics.fillStyle(0xffffff, 1.0);
+    graphics.fillCircle(half, half, half);
+    graphics.fillStyle(0xffffff, 0.5);
+    graphics.fillCircle(half, half, half * 0.6);
+
+    graphics.generateTexture(PARTICLE_TEXTURE_KEY, size, size);
+    graphics.destroy();
   }
 
   // ==========================================================================
