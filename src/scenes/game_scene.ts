@@ -7,6 +7,7 @@
 // ============================================================================
 
 import Phaser from 'phaser';
+import type { GameOverData } from '../types';
 import { GameStateManager } from '../utils/gameStateManager';
 import type { MemeWordInfo } from '../utils/gameStateManager';
 import { InputHandler } from '../utils/inputHandler';
@@ -27,6 +28,13 @@ import { CELL_SIZE } from '../utils/constants';
 
 // --- Meme word popup duration ---
 const MEME_WORD_DURATION_MS = 1500;
+
+/**
+ * Brief delay before transitioning to GameOverScene after the game ends.
+ * Gives the player a moment to see the final board state before the
+ * scene switch, avoiding an abrupt visual cut.
+ */
+const GAME_OVER_TRANSITION_DELAY_MS = 500;
 
 // --- Meme word tier colors ---
 const MEME_TIER_COLORS: Record<string, string> = {
@@ -378,66 +386,15 @@ export class GameScene extends Phaser.Scene {
 
     this.renderState();
 
-    // Show game over overlay with a brief delay (tracked for cleanup)
-    this.gameOverTimer = this.time.delayedCall(500, () => {
-      const bg = this.add.rectangle(
-        BOARD_OFFSET_X + BOARD_PIXEL_WIDTH / 2,
-        BOARD_OFFSET_Y + BOARD_PIXEL_HEIGHT / 2,
-        BOARD_PIXEL_WIDTH,
-        BOARD_PIXEL_HEIGHT,
-        0x000000,
-        0.8,
-      ).setDepth(300);
-
-      const gameOverText = this.add.text(
-        BOARD_OFFSET_X + BOARD_PIXEL_WIDTH / 2,
-        BOARD_OFFSET_Y + BOARD_PIXEL_HEIGHT / 2 - 40,
-        'GAME OVER',
-        {
-          fontSize: '48px',
-          color: '#FF00FF',
-          fontFamily: 'Arial Black, Arial, sans-serif',
-          fontStyle: 'bold',
-          stroke: '#000000',
-          strokeThickness: 6,
-        },
-      ).setOrigin(0.5).setDepth(301);
-
-      const scoreText = this.add.text(
-        BOARD_OFFSET_X + BOARD_PIXEL_WIDTH / 2,
-        BOARD_OFFSET_Y + BOARD_PIXEL_HEIGHT / 2 + 20,
-        `Score: ${this.gsm.state.score}`,
-        {
-          fontSize: '24px',
-          color: '#89CFF0',
-          fontFamily: 'Arial, sans-serif',
-        },
-      ).setOrigin(0.5).setDepth(301);
-
-      const restartText = this.add.text(
-        BOARD_OFFSET_X + BOARD_PIXEL_WIDTH / 2,
-        BOARD_OFFSET_Y + BOARD_PIXEL_HEIGHT / 2 + 60,
-        'Press SPACE to restart',
-        {
-          fontSize: '18px',
-          color: '#FFFFFF',
-          fontFamily: 'Arial, sans-serif',
-        },
-      ).setOrigin(0.5).setDepth(301);
-
-      // Allow restart with Space
-      this.input.keyboard!.once('keydown-SPACE', () => {
-        // Destroy game over overlay elements
-        bg.destroy();
-        gameOverText.destroy();
-        scoreText.destroy();
-        restartText.destroy();
-
-        // Restart the scene cleanly
-        this.scene.restart();
-      });
-
-      void bg;
+    // Transition to GameOverScene with final stats after a brief delay
+    const state = this.gsm.state;
+    const gameOverData: GameOverData = {
+      score: state.score,
+      level: state.level,
+      lines: state.linesCleared,
+    };
+    this.gameOverTimer = this.time.delayedCall(GAME_OVER_TRANSITION_DELAY_MS, () => {
+      this.scene.start('GameOverScene', gameOverData);
     });
   }
 }

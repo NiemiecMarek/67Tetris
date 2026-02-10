@@ -6,8 +6,8 @@
 
 import Phaser from 'phaser';
 import gameConfig from './config';
-import { BootScene, PlaceholderScene, GameScene } from './scenes';
+import { BootScene, MenuScene, GameScene, GameOverScene } from './scenes';
 
-gameConfig.scene = [BootScene, PlaceholderScene, GameScene];
+gameConfig.scene = [BootScene, MenuScene, GameScene, GameOverScene];
 
 new Phaser.Game(gameConfig);

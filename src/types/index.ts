@@ -154,6 +154,17 @@ export interface MemeWordEvent {
   readonly position: GridPosition;
 }
 
+// --- Scene Data Types ---
+
+/**
+ * Data passed from GameScene to GameOverScene via Phaser's scene data system.
+ */
+export interface GameOverData {
+  readonly score: number;
+  readonly level: number;
+  readonly lines: number;
+}
+
 // --- Lock Result ---
 
 /**
