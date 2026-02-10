@@ -46,9 +46,14 @@ export class MenuScene extends Phaser.Scene {
   private gradientGraphics: Phaser.GameObjects.Graphics | null = null;
   private hoverTween: Phaser.Tweens.Tween | null = null;
   private titlePulseTween: Phaser.Tweens.Tween | null = null;
+  private isTransitioning = false;
 
   constructor() {
     super({ key: 'MenuScene' });
+  }
+
+  init(): void {
+    this.isTransitioning = false;
   }
 
   create(): void {
@@ -234,6 +239,9 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private onButtonClick(): void {
+    if (this.isTransitioning) return;
+    this.isTransitioning = true;
+
     // Brief click flash then transition to GameScene
     this.drawButtonFill(0x4B0082, 1);
 

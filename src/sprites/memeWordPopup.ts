@@ -81,6 +81,7 @@ export class MemeWordPopup extends Phaser.GameObjects.Text {
     this.setOrigin(0.5);
     this.setScale(0);
     this.setDepth(100);
+    this.setAlpha(0.5);
 
     // Apply a small random rotation for visual variety
     const rotationDeg = Phaser.Math.FloatBetween(-MAX_ROTATION_DEG, MAX_ROTATION_DEG);

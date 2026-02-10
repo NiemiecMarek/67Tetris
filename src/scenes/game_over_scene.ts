@@ -190,6 +190,8 @@ export class GameOverScene extends Phaser.Scene {
    * Creates a neon-bordered button with hover effects (scale + glow).
    */
   private createButton(x: number, y: number, label: string, onClick: () => void): void {
+    let isProcessing = false;
+
     // Button border (neon rectangle)
     const border = this.add.graphics();
     this.drawButtonBorder(border, x, y, COLORS.ELECTRIC_MAGENTA, 2);
@@ -226,8 +228,11 @@ export class GameOverScene extends Phaser.Scene {
     });
 
     hitArea.on('pointerup', () => {
+      if (isProcessing) return;
+      isProcessing = true;
+
       text.setScale(1.0);
-      onClick();
+      this.time.delayedCall(100, onClick);
     });
   }
 
