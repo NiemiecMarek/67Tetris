@@ -2,8 +2,9 @@
 // 67Tetris - Game Scene
 // ============================================================================
 // Main Phaser scene that orchestrates rendering and input. Delegates all game
-// logic to GameStateManager and all rendering to BoardRenderer. This scene is
-// purely a bridge between user input/timers and the pure game logic layer.
+// logic to GameStateManager, rendering to BoardRenderer, HUD to the Hud
+// component, and pause visuals to PauseOverlay. This scene is purely a
+// bridge between user input/timers and the pure game logic layer.
 // ============================================================================
 
 import Phaser from 'phaser';
@@ -17,14 +18,14 @@ import {
   drawBoard,
   drawPiece,
   drawGhostPiece,
-  drawNextPiece,
-  createHudTexts,
   createLockFlash,
   BOARD_OFFSET_X,
   BOARD_OFFSET_Y,
   BOARD_PIXEL_WIDTH,
   BOARD_PIXEL_HEIGHT,
 } from '../sprites/boardRenderer';
+import { Hud } from '../sprites/hud';
+import { PauseOverlay } from '../sprites/pauseOverlay';
 import { MemeWordPopup } from '../sprites/memeWordPopup';
 import { LineClearEffect } from '../sprites/lineClearEffect';
 import { Combo67Effect } from '../sprites/combo67Effect';
@@ -45,11 +46,11 @@ export class GameScene extends Phaser.Scene {
   private boardGraphics!: Phaser.GameObjects.Graphics;
   private pieceGraphics!: Phaser.GameObjects.Graphics;
 
-  /** HUD text objects. */
-  private scoreText!: Phaser.GameObjects.Text;
-  private levelText!: Phaser.GameObjects.Text;
-  private linesText!: Phaser.GameObjects.Text;
-  private combo67Text!: Phaser.GameObjects.Text;
+  /** HUD component for score, level, lines, combos, and next piece. */
+  private hud!: Hud;
+
+  /** Animated pause overlay component. */
+  private pauseOverlay!: PauseOverlay;
 
   /** Auto-drop timer. */
   private dropTimer: Phaser.Time.TimerEvent | undefined;
@@ -75,12 +76,9 @@ export class GameScene extends Phaser.Scene {
     this.boardGraphics = this.add.graphics();
     this.pieceGraphics = this.add.graphics();
 
-    // Create HUD
-    const hud = createHudTexts(this);
-    this.scoreText = hud.scoreText;
-    this.levelText = hud.levelText;
-    this.linesText = hud.linesText;
-    this.combo67Text = hud.combo67Text;
+    // Create HUD and pause overlay components
+    this.hud = new Hud(this);
+    this.pauseOverlay = new PauseOverlay(this);
 
     // Set up input handler
     this.inputHandler = new InputHandler();
@@ -105,6 +103,10 @@ export class GameScene extends Phaser.Scene {
   shutdown(): void {
     // Clean up event listeners
     this.inputHandler.detach(window);
+
+    // Destroy managed components
+    this.hud.destroy();
+    this.pauseOverlay.destroy();
 
     // Destroy and nullify all tracked timers to prevent memory leaks
     if (this.dropTimer) {
@@ -132,10 +134,10 @@ export class GameScene extends Phaser.Scene {
     if (action === 'pause') {
       if (state.phase === 'playing') {
         this.gsm.pause();
-        this.showPauseOverlay();
+        this.showPause();
       } else if (state.phase === 'paused') {
         this.gsm.resume();
-        this.hidePauseOverlay();
+        this.hidePause();
       }
       return;
     }
@@ -282,15 +284,14 @@ export class GameScene extends Phaser.Scene {
       drawPiece(this.pieceGraphics, state.activePiece);
     }
 
-    // Draw next piece preview
-    // Clear and redraw the next piece area (using a separate clear approach)
-    drawNextPiece(this.pieceGraphics, state.nextPiece);
-
-    // Update HUD
-    this.scoreText.setText(state.score.toString());
-    this.levelText.setText(state.level.toString());
-    this.linesText.setText(state.linesCleared.toString());
-    this.combo67Text.setText(state.combo67Count.toString());
+    // Update HUD (score, level, lines, combos, next piece preview)
+    this.hud.update({
+      score: state.score,
+      level: state.level,
+      linesCleared: state.linesCleared,
+      combo67Count: state.combo67Count,
+      nextPiece: state.nextPiece,
+    });
   }
 
   // -------------------------------------------------------------------------
@@ -333,53 +334,19 @@ export class GameScene extends Phaser.Scene {
   }
 
   // -------------------------------------------------------------------------
-  // Pause overlay
+  // Pause
   // -------------------------------------------------------------------------
 
-  private pauseOverlay: Phaser.GameObjects.Group | null = null;
-
-  private showPauseOverlay(): void {
+  private showPause(): void {
     // Enter pause mode: only the P key (pause toggle) will pass through
     this.inputHandler.setPauseMode(true);
-
-    if (this.pauseOverlay) return;
-
-    this.pauseOverlay = this.add.group();
-
-    const bg = this.add.rectangle(
-      BOARD_OFFSET_X + BOARD_PIXEL_WIDTH / 2,
-      BOARD_OFFSET_Y + BOARD_PIXEL_HEIGHT / 2,
-      BOARD_PIXEL_WIDTH,
-      BOARD_PIXEL_HEIGHT,
-      0x000000,
-      0.7,
-    ).setDepth(200);
-
-    const text = this.add.text(
-      BOARD_OFFSET_X + BOARD_PIXEL_WIDTH / 2,
-      BOARD_OFFSET_Y + BOARD_PIXEL_HEIGHT / 2,
-      'PAUSED\n\nPress P to resume',
-      {
-        fontSize: '32px',
-        color: '#FF00FF',
-        fontFamily: 'Arial, sans-serif',
-        fontStyle: 'bold',
-        align: 'center',
-      },
-    ).setOrigin(0.5).setDepth(201);
-
-    this.pauseOverlay.add(bg);
-    this.pauseOverlay.add(text);
+    this.pauseOverlay.show();
   }
 
-  private hidePauseOverlay(): void {
+  private hidePause(): void {
     // Exit pause mode: restore full input processing
     this.inputHandler.setPauseMode(false);
-
-    if (this.pauseOverlay) {
-      this.pauseOverlay.clear(true, true);
-      this.pauseOverlay = null;
-    }
+    this.pauseOverlay.hide();
     this.renderState();
   }
 

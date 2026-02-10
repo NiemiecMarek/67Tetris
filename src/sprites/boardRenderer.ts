@@ -2,12 +2,12 @@
 // 67Tetris - Board Renderer
 // ============================================================================
 // Phaser rendering utilities for the game board, active piece, ghost piece,
-// and next piece preview. Uses Phaser.GameObjects.Graphics for drawing.
+// and lock flash effect. Uses Phaser.GameObjects.Graphics for drawing.
 // Neon glow effects use the KPop Demon Hunters color palette.
 // ============================================================================
 
 import Phaser from 'phaser';
-import type { Grid, ActivePiece, PieceType } from '../types';
+import type { Grid, ActivePiece } from '../types';
 import { CellValue } from '../types';
 import {
   BOARD_WIDTH,
@@ -20,6 +20,8 @@ import { getPieceMatrix } from '../utils/pieces';
 import { hardDrop } from '../utils/movement';
 
 // --- Layout constants ---
+// NOTE: BOARD_OFFSET_X, BOARD_OFFSET_Y, BOARD_PIXEL_WIDTH, BOARD_PIXEL_HEIGHT
+// are exported and used by multiple components (GameScene, Hud, PauseOverlay).
 
 /** X offset for the board area (pixels from left). */
 export const BOARD_OFFSET_X = 200;
@@ -54,17 +56,6 @@ const CELL_INSET = 1;
 
 /** Duration of the lock flash effect in milliseconds. */
 const LOCK_FLASH_DURATION_MS = 200;
-
-// --- Next piece preview layout ---
-
-/** Size of cells in the next piece preview (smaller than board cells). */
-const PREVIEW_CELL_SIZE = 24;
-
-/** X position of the next piece preview area. */
-const PREVIEW_X = BOARD_OFFSET_X + BOARD_PIXEL_WIDTH + 30;
-
-/** Y position of the next piece preview area. */
-const PREVIEW_Y = BOARD_OFFSET_Y + 60;
 
 // --- Color utilities ---
 
@@ -222,109 +213,6 @@ export function drawGhostPiece(
   }
 }
 
-/**
- * Draws the next piece preview in a dedicated area to the right of the board.
- */
-export function drawNextPiece(
-  graphics: Phaser.GameObjects.Graphics,
-  pieceType: PieceType,
-): void {
-  const matrix = getPieceMatrix(pieceType, 0);
-  const color = PIECE_COLORS[pieceType];
-  const colorInt = hexToInt(color);
-
-  // Calculate centering offset within the preview area
-  const matrixWidth = matrix[0].length;
-  const matrixHeight = matrix.length;
-  const previewWidth = 4 * PREVIEW_CELL_SIZE;
-  const previewHeight = 4 * PREVIEW_CELL_SIZE;
-
-  const offsetX = PREVIEW_X + (previewWidth - matrixWidth * PREVIEW_CELL_SIZE) / 2;
-  const offsetY = PREVIEW_Y + (previewHeight - matrixHeight * PREVIEW_CELL_SIZE) / 2;
-
-  // Preview background
-  graphics.fillStyle(hexToInt(COLORS.SHADOW_BLACK), 0.5);
-  graphics.fillRect(PREVIEW_X - 5, PREVIEW_Y - 5, previewWidth + 10, previewHeight + 10);
-
-  // Preview border
-  graphics.lineStyle(1, hexToInt(COLORS.NEON_PURPLE), 0.4);
-  graphics.strokeRect(PREVIEW_X - 5, PREVIEW_Y - 5, previewWidth + 10, previewHeight + 10);
-
-  // Draw cells
-  for (let r = 0; r < matrix.length; r++) {
-    for (let c = 0; c < matrix[r].length; c++) {
-      if (matrix[r][c] === 0) continue;
-
-      const x = offsetX + c * PREVIEW_CELL_SIZE + CELL_INSET;
-      const y = offsetY + r * PREVIEW_CELL_SIZE + CELL_INSET;
-      const size = PREVIEW_CELL_SIZE - CELL_INSET * 2;
-
-      // Cell fill
-      graphics.fillStyle(colorInt, 0.9);
-      graphics.fillRect(x, y, size, size);
-
-      // Neon border
-      graphics.lineStyle(1, colorInt, 0.6);
-      graphics.strokeRect(x, y, size, size);
-    }
-  }
-}
-
-// ============================================================================
-// HUD rendering
-// ============================================================================
-
-/**
- * Draws the HUD elements (score, level, lines) as Phaser text objects.
- * Returns the created text objects for later updating.
- */
-export function createHudTexts(
-  scene: Phaser.Scene,
-): {
-  scoreText: Phaser.GameObjects.Text;
-  levelText: Phaser.GameObjects.Text;
-  linesText: Phaser.GameObjects.Text;
-  nextLabel: Phaser.GameObjects.Text;
-  combo67Text: Phaser.GameObjects.Text;
-} {
-  const hudX = PREVIEW_X;
-  const hudY = PREVIEW_Y + 4 * PREVIEW_CELL_SIZE + 40;
-
-  const textStyle: Phaser.Types.GameObjects.Text.TextStyle = {
-    fontSize: '18px',
-    color: COLORS.ELECTRIC_MAGENTA,
-    fontFamily: 'Arial, sans-serif',
-    fontStyle: 'bold',
-  };
-
-  const labelStyle: Phaser.Types.GameObjects.Text.TextStyle = {
-    fontSize: '14px',
-    color: COLORS.PASTEL_BLUE,
-    fontFamily: 'Arial, sans-serif',
-  };
-
-  const nextLabel = scene.add.text(PREVIEW_X, PREVIEW_Y - 30, 'NEXT', labelStyle);
-
-  const scoreLabel = scene.add.text(hudX, hudY, 'SCORE', labelStyle);
-  const scoreText = scene.add.text(hudX, hudY + 20, '0', textStyle);
-
-  const levelLabel = scene.add.text(hudX, hudY + 55, 'LEVEL', labelStyle);
-  const levelText = scene.add.text(hudX, hudY + 75, '1', textStyle);
-
-  const linesLabel = scene.add.text(hudX, hudY + 110, 'LINES', labelStyle);
-  const linesText = scene.add.text(hudX, hudY + 130, '0', textStyle);
-
-  const comboLabel = scene.add.text(hudX, hudY + 165, '67 COMBOS', labelStyle);
-  const combo67Text = scene.add.text(hudX, hudY + 185, '0', textStyle);
-
-  // Keep references to labels to prevent GC (they're owned by the scene display list)
-  void scoreLabel;
-  void levelLabel;
-  void linesLabel;
-  void comboLabel;
-
-  return { scoreText, levelText, linesText, nextLabel, combo67Text };
-}
 
 // ============================================================================
 // Lock flash effect
