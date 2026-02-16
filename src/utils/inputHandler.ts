@@ -166,6 +166,9 @@ export class InputHandler {
   update(time: number): void {
     if (!this._enabled || this._pauseMode) return;
 
+    // Early exit if no keys are held (performance optimization)
+    if (this._dasStates.size === 0) return;
+
     for (const [action, das] of this._dasStates) {
       if (!das.held) continue;
 
