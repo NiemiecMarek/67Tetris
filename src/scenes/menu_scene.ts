@@ -7,6 +7,7 @@
 
 import Phaser from 'phaser';
 import { COLORS } from '../utils/constants';
+import { isMobileDevice } from '../utils/deviceDetector';
 
 // --- Layout constants ---
 
@@ -39,6 +40,10 @@ const TITLE_PULSE_DURATION_MS = 2000;
 // Subtitle positioning
 const SUBTITLE_Y = 260;
 
+// Input hints positioning (between subtitle and play button)
+const HINTS_Y = 340;
+const HINTS_ROW_SPACING = 22;
+
 export class MenuScene extends Phaser.Scene {
   private buttonContainer!: Phaser.GameObjects.Container;
   private buttonBorderGraphics!: Phaser.GameObjects.Graphics;
@@ -46,6 +51,8 @@ export class MenuScene extends Phaser.Scene {
   private gradientGraphics: Phaser.GameObjects.Graphics | null = null;
   private hoverTween: Phaser.Tweens.Tween | null = null;
   private titlePulseTween: Phaser.Tweens.Tween | null = null;
+  private hintsTween: Phaser.Tweens.Tween | null = null;
+  private isMobile = false;
   private isTransitioning = false;
 
   constructor() {
@@ -57,8 +64,10 @@ export class MenuScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.isMobile = isMobileDevice();
     this.createBackground();
     this.createTitle();
+    this.createInputHints();
     this.createPlayButton();
     this.createFooter();
   }
@@ -128,6 +137,39 @@ export class MenuScene extends Phaser.Scene {
       fontFamily: 'Arial, sans-serif',
       fontStyle: 'italic',
     }).setOrigin(0.5).setAlpha(0.7);
+  }
+
+  // -------------------------------------------------------------------------
+  // Input Hints
+  // -------------------------------------------------------------------------
+
+  private createInputHints(): void {
+    if (this.isMobile) {
+      const row1 = this.add.text(CENTER_X, HINTS_Y, '\u2190 MOVE \u2192 | SOFT DROP \u2193', {
+        fontSize: '14px',
+        color: COLORS.PASTEL_BLUE,
+        fontFamily: 'Arial, sans-serif',
+      }).setOrigin(0.5).setAlpha(0);
+
+      const row2 = this.add.text(CENTER_X, HINTS_Y + HINTS_ROW_SPACING, 'A = ROTATE  |  SWIPE \u2191 = DROP', {
+        fontSize: '14px',
+        color: COLORS.PASTEL_BLUE,
+        fontFamily: 'Arial, sans-serif',
+      }).setOrigin(0.5).setAlpha(0);
+
+      this.hintsTween = this.tweens.add({
+        targets: [row1, row2],
+        alpha: 0.75,
+        duration: 1000,
+        delay: 400,
+      });
+    } else {
+      this.add.text(CENTER_X, HINTS_Y + 11, 'ARROWS = MOVE  |  Z/X = ROTATE  |  SPACE = DROP', {
+        fontSize: '13px',
+        color: COLORS.CHARCOAL,
+        fontFamily: 'Arial, sans-serif',
+      }).setOrigin(0.5).setAlpha(0.6);
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -255,6 +297,10 @@ export class MenuScene extends Phaser.Scene {
   // -------------------------------------------------------------------------
 
   shutdown(): void {
+    if (this.hintsTween) {
+      this.hintsTween.stop();
+      this.hintsTween = null;
+    }
     if (this.titlePulseTween) {
       this.titlePulseTween.destroy();
       this.titlePulseTween = null;

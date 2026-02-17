@@ -26,7 +26,7 @@ const STATS_LINE_HEIGHT = 50;
 const BUTTON_START_Y = 480;
 const BUTTON_SPACING = 70;
 const BUTTON_WIDTH = 260;
-const BUTTON_HEIGHT = 50;
+const BUTTON_HEIGHT = 60;
 
 // --- Font styles ---
 
