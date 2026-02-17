@@ -30,6 +30,8 @@ import { MemeWordPopup } from '../sprites/memeWordPopup';
 import { LineClearEffect } from '../sprites/lineClearEffect';
 import { Combo67Effect } from '../sprites/combo67Effect';
 import { CELL_SIZE } from '../utils/constants';
+import { isMobileDevice } from '../utils/deviceDetector';
+import { MobileControlsManager } from '../utils/mobileControlsManager';
 
 /**
  * Brief delay before transitioning to GameOverScene after the game ends.
@@ -61,6 +63,9 @@ export class GameScene extends Phaser.Scene {
   /** Game over delay timer -- tracked for proper cleanup. */
   private gameOverTimer: Phaser.Time.TimerEvent | undefined;
 
+  /** Mobile touch controls (only created on touch-capable devices). */
+  private mobileControls: MobileControlsManager | null = null;
+
   constructor() {
     super({ key: 'GameScene' });
   }
@@ -85,6 +90,13 @@ export class GameScene extends Phaser.Scene {
     this.inputHandler.setActionCallback((action: InputAction) => this.handleAction(action));
     this.inputHandler.attach(window);
 
+    // Create mobile controls on touch-capable devices
+    if (isMobileDevice()) {
+      this.mobileControls = new MobileControlsManager(this, (action) => this.handleAction(action));
+      this.mobileControls.create();
+      this.mobileControls.show();
+    }
+
     // Start the game
     this.gsm.startGame();
 
@@ -98,6 +110,7 @@ export class GameScene extends Phaser.Scene {
   update(time: number, _delta: number): void {
     // Process DAS/ARR for held keys
     this.inputHandler.update(time);
+    this.mobileControls?.update(time);
   }
 
   shutdown(): void {
@@ -116,6 +129,10 @@ export class GameScene extends Phaser.Scene {
     if (this.memePopup) {
       this.memePopup.destroy();
       this.memePopup = null;
+    }
+    if (this.mobileControls) {
+      this.mobileControls.destroy();
+      this.mobileControls = null;
     }
     if (this.gameOverTimer) {
       this.gameOverTimer.destroy();
@@ -337,15 +354,20 @@ export class GameScene extends Phaser.Scene {
   // Pause
   // -------------------------------------------------------------------------
 
+  private setInputPauseMode(paused: boolean): void {
+    this.inputHandler.setPauseMode(paused);
+    this.mobileControls?.setPauseMode(paused);
+  }
+
   private showPause(): void {
-    // Enter pause mode: only the P key (pause toggle) will pass through
-    this.inputHandler.setPauseMode(true);
+    // Enter pause mode: only the pause toggle will pass through
+    this.setInputPauseMode(true);
     this.pauseOverlay.show();
   }
 
   private hidePause(): void {
     // Exit pause mode: restore full input processing
-    this.inputHandler.setPauseMode(false);
+    this.setInputPauseMode(false);
     this.pauseOverlay.hide();
     this.renderState();
   }
@@ -357,7 +379,13 @@ export class GameScene extends Phaser.Scene {
   private handleGameOver(): void {
     // Fully disconnect input to prevent leaked event listeners
     this.inputHandler.disable();
+    this.inputHandler.setPauseMode(false);
     this.inputHandler.detach(window);
+
+    if (this.mobileControls) {
+      this.mobileControls.destroy();
+      this.mobileControls = null;
+    }
 
     if (this.dropTimer) {
       this.dropTimer.destroy();
