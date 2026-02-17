@@ -23,8 +23,11 @@ import {
 
 // --- Layout Constants ---
 
+/** Horizontal gap between the board right edge and the HUD panel. */
+const HUD_MARGIN_RIGHT = 30;
+
 /** X position of the HUD panel (right of the board). */
-const HUD_X = BOARD_OFFSET_X + BOARD_PIXEL_WIDTH + 30;
+const HUD_X = BOARD_OFFSET_X + BOARD_PIXEL_WIDTH + HUD_MARGIN_RIGHT;
 
 /** Size of cells in the next piece preview. */
 const PREVIEW_CELL_SIZE = 24;

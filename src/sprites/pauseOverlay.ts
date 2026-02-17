@@ -316,6 +316,11 @@ export class PauseOverlay {
   // --------------------------------------------------------------------------
 
   private destroyElements(): void {
+    // Guard against double-destroy (e.g., destroy() called during fade-out tween)
+    if (!this.background && !this.pausedText && !this.memeText && !this.resumeText) {
+      return;
+    }
+
     if (this.background) {
       this.background.destroy();
       this.background = null;
