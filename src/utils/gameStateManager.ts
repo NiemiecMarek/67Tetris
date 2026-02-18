@@ -549,6 +549,21 @@ export class GameStateManager {
   }
 
   // -------------------------------------------------------------------------
+  // Test helpers
+  // -------------------------------------------------------------------------
+
+  /**
+   * Merges a partial state patch into the current state.
+   *
+   * @internal FOR TESTING ONLY — allows deterministic test setup without
+   * driving the game to a specific state via normal gameplay.
+   * Do not call this in production code.
+   */
+  _overrideStateForTesting(patch: Partial<GameState>): void {
+    this._state = { ...this._state, ...patch };
+  }
+
+  // -------------------------------------------------------------------------
   // Internal helpers
   // -------------------------------------------------------------------------
 
