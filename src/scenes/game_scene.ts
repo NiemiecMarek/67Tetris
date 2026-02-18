@@ -10,7 +10,7 @@
 import Phaser from 'phaser';
 import type { GameOverData } from '../types';
 import { GameStateManager } from '../utils/gameStateManager';
-import type { MemeWordInfo } from '../utils/gameStateManager';
+import type { MemeWordInfo, HardDropResult, TickResult } from '../utils/gameStateManager';
 import { InputHandler } from '../utils/inputHandler';
 import type { InputAction } from '../utils/inputHandler';
 import {
@@ -32,6 +32,7 @@ import { Combo67Effect } from '../sprites/combo67Effect';
 import { CELL_SIZE } from '../utils/constants';
 import { isMobileDevice } from '../utils/deviceDetector';
 import { MobileControlsManager } from '../utils/mobileControlsManager';
+import { AudioManager } from '../utils/audioManager';
 
 /**
  * Brief delay before transitioning to GameOverScene after the game ends.
@@ -66,6 +67,9 @@ export class GameScene extends Phaser.Scene {
   /** Mobile touch controls (only created on touch-capable devices). */
   private mobileControls: MobileControlsManager | null = null;
 
+  /** Procedural audio manager. */
+  private audio!: AudioManager;
+
   constructor() {
     super({ key: 'GameScene' });
   }
@@ -73,6 +77,7 @@ export class GameScene extends Phaser.Scene {
   create(): void {
     // Initialize game state manager
     this.gsm = new GameStateManager();
+    this.audio = new AudioManager();
 
     // Create graphics layers (background is drawn once, pieces redrawn each frame)
     const bgGraphics = this.add.graphics();
@@ -175,16 +180,21 @@ export class GameScene extends Phaser.Scene {
         this.gsm.softDrop();
         break;
 
-      case 'rotateCW':
-        this.gsm.rotateActivePiece('cw');
+      case 'rotateCW': {
+        const rotateResult = this.gsm.rotateActivePiece('cw');
+        if (rotateResult.success) this.audio.playRotate(this.gsm.state.level);
         break;
+      }
 
-      case 'rotateCCW':
-        this.gsm.rotateActivePiece('ccw');
+      case 'rotateCCW': {
+        const rotateResult = this.gsm.rotateActivePiece('ccw');
+        if (rotateResult.success) this.audio.playRotate(this.gsm.state.level);
         break;
+      }
 
       case 'hardDrop': {
         const activePiece = this.gsm.state.activePiece;
+        const levelBefore = this.gsm.state.level;
         const result = this.gsm.hardDropActivePiece();
 
         if (result) {
@@ -192,6 +202,8 @@ export class GameScene extends Phaser.Scene {
           if (activePiece) {
             createLockFlash(this, activePiece);
           }
+
+          this.playAudioForLockEvent(result, levelBefore, 'hardDrop');
 
           // Play 67 combo effect if triggered (plays before line clear for dramatic impact)
           if (result.combo67Triggered) {
@@ -247,6 +259,7 @@ export class GameScene extends Phaser.Scene {
     if (this.gsm.state.phase !== 'playing') return;
 
     const activePiece = this.gsm.state.activePiece;
+    const levelBefore = this.gsm.state.level;
     const result = this.gsm.tick();
 
     if (result.action === 'locked') {
@@ -254,6 +267,8 @@ export class GameScene extends Phaser.Scene {
       if (activePiece) {
         createLockFlash(this, activePiece);
       }
+
+      this.playAudioForLockEvent(result, levelBefore, 'gravity');
 
       // Play 67 combo effect if triggered (plays before line clear for dramatic impact)
       if (result.combo67Triggered) {
@@ -373,10 +388,38 @@ export class GameScene extends Phaser.Scene {
   }
 
   // -------------------------------------------------------------------------
+  // Audio helpers
+  // -------------------------------------------------------------------------
+
+  /**
+   * Plays the appropriate audio for a piece lock event with priority:
+   * 67 combo > level up > line clear > hard drop (gravity locks skip the drop thud).
+   */
+  private playAudioForLockEvent(
+    result: HardDropResult | TickResult,
+    levelBefore: number,
+    trigger: 'hardDrop' | 'gravity',
+  ): void {
+    const levelAfter = result.state.level;
+    if (result.combo67Triggered) {
+      this.audio.playCombo67(levelBefore);
+    } else if (levelAfter > levelBefore) {
+      if (trigger === 'hardDrop') this.audio.playHardDrop(levelBefore);
+      this.time.delayedCall(150, () => this.audio.playLevelUp(levelAfter));
+    } else if (result.clearedRows.length > 0) {
+      this.audio.playLineClear(result.clearedRows.length, levelBefore);
+    } else if (trigger === 'hardDrop') {
+      this.audio.playHardDrop(levelBefore);
+    }
+  }
+
+  // -------------------------------------------------------------------------
   // Game over
   // -------------------------------------------------------------------------
 
   private handleGameOver(): void {
+    this.audio.playGameOver();
+
     // Fully disconnect input to prevent leaked event listeners
     this.inputHandler.disable();
     this.inputHandler.setPauseMode(false);
