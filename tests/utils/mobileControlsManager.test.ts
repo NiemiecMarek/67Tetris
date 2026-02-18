@@ -377,8 +377,8 @@ describe('MobileControlsManager', () => {
       const dpadX = MockMobileDPadCtor.mock.calls[0][1] as number;
       const dpadY = MockMobileDPadCtor.mock.calls[0][2] as number;
 
-      // Math.max(100, 20 + 200/2) = 120 due to edge margin safety
-      expect(dpadX).toBe(120);
+      // Math.max(100, 20 + 240/2) = 140 due to edge margin safety
+      expect(dpadX).toBe(140);
       expect(dpadY).toBe(720 - 150);
     });
 
@@ -389,7 +389,7 @@ describe('MobileControlsManager', () => {
       const actionY = MockMobileActionButtonsCtor.mock.calls[0][2] as number;
 
       expect(actionX).toBe(800 - 100);
-      expect(actionY).toBe(720 - 200);
+      expect(actionY).toBe(720 - 250);
     });
 
     it('should position pause button at top-right', () => {
@@ -398,8 +398,9 @@ describe('MobileControlsManager', () => {
       const pauseX = MockMobilePauseButtonCtor.mock.calls[0][1] as number;
       const pauseY = MockMobilePauseButtonCtor.mock.calls[0][2] as number;
 
-      expect(pauseX).toBe(800 - 60);
-      expect(pauseY).toBe(60);
+      // Math.max(60, 20 + 90/2) = 65 due to edge margin safety
+      expect(pauseX).toBe(800 - 65);
+      expect(pauseY).toBe(65);
     });
 
     it('should not apply scale in landscape mode', () => {
@@ -412,14 +413,15 @@ describe('MobileControlsManager', () => {
   });
 
   describe('layout (portrait)', () => {
-    it('should apply 0.85 scale factor in portrait mode', () => {
+    it('should not apply scale in portrait mode (PORTRAIT_SCALE = 1.0)', () => {
       const portraitScene = createMockScene(400, 720);
       const portraitManager = new MobileControlsManager(portraitScene, onAction);
       portraitManager.create();
 
-      expect(mockDPadInstance.setScale).toHaveBeenCalledWith(0.85);
-      expect(mockActionButtonsInstance.setScale).toHaveBeenCalledWith(0.85);
-      expect(mockPauseButtonInstance.setScale).toHaveBeenCalledWith(0.85);
+      // PORTRAIT_SCALE is 1.0 so scale < 1 is never true → setScale not called
+      expect(mockDPadInstance.setScale).not.toHaveBeenCalled();
+      expect(mockActionButtonsInstance.setScale).not.toHaveBeenCalled();
+      expect(mockPauseButtonInstance.setScale).not.toHaveBeenCalled();
     });
 
     it('should adjust positions for narrower screen', () => {
@@ -431,7 +433,8 @@ describe('MobileControlsManager', () => {
       expect(actionX).toBe(400 - 100);
 
       const pauseX = MockMobilePauseButtonCtor.mock.calls[0][1] as number;
-      expect(pauseX).toBe(400 - 60);
+      // Math.max(60, 20 + 90/2) = 65 → 400 - 65 = 335
+      expect(pauseX).toBe(400 - 65);
     });
   });
 

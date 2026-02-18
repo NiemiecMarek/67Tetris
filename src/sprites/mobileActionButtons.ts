@@ -20,16 +20,16 @@ import { VirtualButton } from './virtualButton';
 // --- Size Constants ---
 
 /** Diameter of the rotate CW button (primary action, largest). */
-const ROTATE_CW_SIZE = 90;
+const ROTATE_CW_SIZE = 135;
 
 /** Diameter of the rotate CCW button. */
-const ROTATE_CCW_SIZE = 70;
+const ROTATE_CCW_SIZE = 105;
 
 /** Diameter of the hard drop button. */
-const HARD_DROP_SIZE = 70;
+const HARD_DROP_SIZE = 105;
 
 /** Vertical gap between button edges. */
-const BUTTON_GAP = 20;
+const BUTTON_GAP = 35;
 
 // ============================================================================
 // MobileActionButtons

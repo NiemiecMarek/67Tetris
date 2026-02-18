@@ -18,16 +18,16 @@ import { hexToInt } from '../utils/colorUtils';
 // --- Visual Constants ---
 
 /** Default diameter for circular buttons. */
-export const CIRCLE_DIAMETER = 80;
+export const CIRCLE_DIAMETER = 120;
 
 /** Default side length for square buttons. */
-export const SQUARE_SIZE = 70;
+export const SQUARE_SIZE = 105;
 
 /** Border width for the neon glow effect. */
 const BORDER_WIDTH = 3;
 
 /** Font size for button icons/labels. */
-const ICON_FONT_SIZE = '28px';
+const ICON_FONT_SIZE = '42px';
 
 /** Scale applied when the button is pressed (subtle shrink feedback). */
 const PRESSED_SCALE = 0.95;

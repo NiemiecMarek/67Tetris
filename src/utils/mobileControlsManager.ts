@@ -33,7 +33,7 @@ const DPAD_Y_FROM_BOTTOM = 150;
 const ACTION_X_FROM_RIGHT = 100;
 
 /** Action buttons center Y offset from bottom edge (landscape). */
-const ACTION_Y_FROM_BOTTOM = 200;
+const ACTION_Y_FROM_BOTTOM = 250;
 
 /** Pause button center X offset from right edge. */
 const PAUSE_X_FROM_RIGHT = 60;
@@ -42,19 +42,19 @@ const PAUSE_X_FROM_RIGHT = 60;
 const PAUSE_Y = 60;
 
 /** Scale factor applied to all controls in portrait orientation. */
-const PORTRAIT_SCALE = 0.85;
+const PORTRAIT_SCALE = 1.0;
 
 /** D-pad approximate footprint (used for dead zone calculation). */
-const DPAD_FOOTPRINT = 200;
+const DPAD_FOOTPRINT = 240;
 
 /** Action buttons approximate width (used for dead zone calculation). */
-const ACTION_FOOTPRINT_WIDTH = 100;
+const ACTION_FOOTPRINT_WIDTH = 150;
 
 /** Action buttons approximate height (used for dead zone calculation). */
-const ACTION_FOOTPRINT_HEIGHT = 300;
+const ACTION_FOOTPRINT_HEIGHT = 430;
 
 /** Pause button approximate footprint (used for dead zone calculation). */
-const PAUSE_FOOTPRINT = 60;
+const PAUSE_FOOTPRINT = 90;
 
 // ============================================================================
 // MobileControlsManager

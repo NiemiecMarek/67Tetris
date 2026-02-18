@@ -22,13 +22,13 @@ import { VirtualButton, SQUARE_SIZE } from './virtualButton';
 // --- Layout Constants ---
 
 /** Total footprint of the D-pad area. */
-const DPAD_FOOTPRINT = 200;
+const DPAD_FOOTPRINT = 240;
 
 /** Spacing between buttons in the diamond layout. */
-const BUTTON_SPACING = 10;
+const BUTTON_SPACING = 20;
 
 /** Radius of the background grouping circle. */
-const BG_RADIUS = DPAD_FOOTPRINT / 2;
+const BG_RADIUS = DPAD_FOOTPRINT / 2 - 10;
 
 /** Background fill color (dark, semi-transparent). */
 const BG_COLOR = 0x0a0a1a;

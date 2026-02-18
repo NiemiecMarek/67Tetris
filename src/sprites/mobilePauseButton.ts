@@ -15,7 +15,7 @@ import { VirtualButton } from './virtualButton';
 // --- Size Constants ---
 
 /** Diameter of the pause button. */
-const PAUSE_BUTTON_SIZE = 50;
+const PAUSE_BUTTON_SIZE = 75;
 
 /** Duration of one glow pulse cycle when paused (ms). */
 const GLOW_PULSE_DURATION = 800;
