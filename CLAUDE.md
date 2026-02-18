@@ -214,6 +214,53 @@ this.physics.add.collider(groupA, groupB, callback);
 
 ---
 
+## 📱 Mobile Controls Architecture
+
+### Overview
+Mobile touch controls are auto-detected and layered on top of keyboard input. Both input systems are active simultaneously on capable devices (e.g. iPad with keyboard). `GameScene.handleAction()` is the single callback that receives all input from both sources.
+
+### Key Classes
+
+| Class | File | Responsibility |
+|-------|------|----------------|
+| `hasTouchSupport` / `isMobileDevice` / `getDeviceType` | `src/utils/deviceDetector.ts` | Pure detection functions, no side effects |
+| `TouchInputManager` | `src/utils/touchInputManager.ts` | Touch input with DAS/ARR, swipe detection, button API |
+| `MobileControlsManager` | `src/utils/mobileControlsManager.ts` | Orchestrates all mobile UI, responsive layout |
+| `VirtualButton` | `src/sprites/virtualButton.ts` | Individual button (neon style, press animations) |
+| `MobileDPad` | `src/sprites/mobileDPad.ts` | D-pad: left, right, soft drop |
+| `MobileActionButtons` | `src/sprites/mobileActionButtons.ts` | Rotate CW/CCW, hard drop |
+| `MobilePauseButton` | `src/sprites/mobilePauseButton.ts` | Pause/resume |
+
+### Data Flow
+```
+Touch event → TouchInputManager → InputAction callback ─┐
+                                                         ▼
+Keyboard event → InputHandler ──────────────────► GameScene.handleAction()
+                                                         ▼
+                                                  GameStateManager
+```
+
+### DAS/ARR Timing
+Same constants as `InputHandler`: **167ms delay, 33ms repeat**. Ensures held-button movement feels identical to keyboard.
+
+### Swipe Gesture Thresholds
+- Min distance: **50px**
+- Max time: **300ms**
+- Min velocity: **0.3 px/ms**
+- Direction mapping: right→`moveRight`, down→`softDrop`, left→`moveLeft`, up→`hardDrop`
+- Dead zones suppress swipes starting on virtual button areas
+
+### Device Detection Strategy
+`isMobileDevice()` uses dual detection: UA string pattern match **OR** `navigator.maxTouchPoints > 0`. Intentionally broad — false positives (showing controls on touch desktop) are harmless; false negatives (hiding controls on real mobile) would make the game unplayable.
+
+### Responsive Layout
+- **Landscape** (width > height): D-pad bottom-left, actions bottom-right
+- **Portrait** (height > width): same positions, 15% scale reduction
+- Minimum safe zone: 20px from edges
+- Re-layout debounced 300ms on orientation change
+
+---
+
 ## 🔄 Git Workflow
 
 **Branches:**
