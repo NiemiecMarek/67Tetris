@@ -11,7 +11,22 @@ import type { PieceType, LineClearType } from '../types';
 
 export const BOARD_WIDTH = 10;
 export const BOARD_HEIGHT = 20;
-export const CELL_SIZE = 32;
+
+// On portrait mobile the canvas is much taller than on desktop (see config.ts).
+// Scale cell size so the board fills ~58 % of that canvas height.
+// Clamped to [32, 52] so desktop layout (720 px canvas) is never broken.
+function computeCellSize(): number {
+  if (typeof window === 'undefined') return 32;
+  const isPortrait = window.innerHeight > window.innerWidth;
+  const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  if (isPortrait && hasTouch) {
+    const canvasHeight = Math.round((window.innerHeight * 800) / window.innerWidth);
+    return Math.max(32, Math.min(52, Math.floor((canvasHeight * 0.58) / 20)));
+  }
+  return 32;
+}
+
+export const CELL_SIZE = computeCellSize();
 
 // --- Scoring ---
 

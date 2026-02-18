@@ -46,10 +46,10 @@ const PREVIEW_WIDTH = PREVIEW_GRID_CELLS * PREVIEW_CELL_SIZE;
 const PREVIEW_HEIGHT = PREVIEW_GRID_CELLS * PREVIEW_CELL_SIZE;
 
 /** Gap between HUD sections. */
-const SECTION_GAP = 55;
+const SECTION_GAP = 75;
 
 /** Gap between label and value text. */
-const LABEL_VALUE_GAP = 20;
+const LABEL_VALUE_GAP = 24;
 
 /** Starting Y for stat labels (below the preview area). */
 const STATS_Y = PREVIEW_Y + PREVIEW_HEIGHT + 40;
@@ -60,13 +60,13 @@ const CELL_INSET = 1;
 // --- Font Styles ---
 
 const LABEL_STYLE: Phaser.Types.GameObjects.Text.TextStyle = {
-  fontSize: '14px',
+  fontSize: '18px',
   color: COLORS.PASTEL_BLUE,
   fontFamily: 'Arial, sans-serif',
 };
 
 const VALUE_STYLE: Phaser.Types.GameObjects.Text.TextStyle = {
-  fontSize: '18px',
+  fontSize: '26px',
   color: COLORS.ELECTRIC_MAGENTA,
   fontFamily: 'Arial, sans-serif',
   fontStyle: 'bold',
