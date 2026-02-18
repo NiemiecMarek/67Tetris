@@ -23,8 +23,16 @@ import { hardDrop } from '../utils/movement';
 // NOTE: BOARD_OFFSET_X, BOARD_OFFSET_Y, BOARD_PIXEL_WIDTH, BOARD_PIXEL_HEIGHT
 // are exported and used by multiple components (GameScene, Hud, PauseOverlay).
 
-/** X offset for the board area (pixels from left). */
-export const BOARD_OFFSET_X = 200;
+/** X offset for the board area (pixels from left).
+ *  On portrait mobile the board is wider (larger CELL_SIZE), so the left
+ *  margin is reduced to leave enough room for the HUD panel on the right. */
+function computeBoardOffsetX(): number {
+  if (typeof window === 'undefined') return 200;
+  const isPortrait = window.innerHeight > window.innerWidth;
+  const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  return isPortrait && hasTouch ? 15 : 200;
+}
+export const BOARD_OFFSET_X = computeBoardOffsetX();
 
 /** Y offset for the board area (pixels from top). */
 export const BOARD_OFFSET_Y = 40;
