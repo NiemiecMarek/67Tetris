@@ -24,13 +24,23 @@ import { hardDrop } from '../utils/movement';
 // are exported and used by multiple components (GameScene, Hud, PauseOverlay).
 
 /** X offset for the board area (pixels from left).
- *  On portrait mobile the board is wider (larger CELL_SIZE), so the left
- *  margin is reduced to leave enough room for the HUD panel on the right. */
+ *  On portrait mobile the [board + HUD] block is centered in the 800-wide
+ *  canvas so the left and right margins are equal. */
 function computeBoardOffsetX(): number {
   if (typeof window === 'undefined') return 200;
   const isPortrait = window.innerHeight > window.innerWidth;
   const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-  return isPortrait && hasTouch ? 15 : 200;
+  if (isPortrait && hasTouch) {
+    // HUD_GAP matches HUD_MARGIN_RIGHT defined in hud.ts (30 px).
+    // HUD_PANEL_WIDTH is an estimate: preview box (106 px) + label padding.
+    const HUD_GAP = 30;
+    const HUD_PANEL_WIDTH = 150;
+    const CANVAS_WIDTH = 800;
+    const boardPixelWidth = BOARD_WIDTH * CELL_SIZE;
+    const totalContent = boardPixelWidth + HUD_GAP + HUD_PANEL_WIDTH;
+    return Math.max(10, Math.floor((CANVAS_WIDTH - totalContent) / 2));
+  }
+  return 200;
 }
 export const BOARD_OFFSET_X = computeBoardOffsetX();
 
