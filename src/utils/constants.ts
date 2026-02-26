@@ -63,6 +63,7 @@ export const LINES_PER_LEVEL = 10;
 export const COLORS = {
   // Primary neon colors
   ELECTRIC_MAGENTA: '#FF00FF',
+  LIGHT_MAGENTA: '#FFCCFF',
   BUBBLEGUM_PINK: '#FF69B4',
   NEON_PURPLE: '#B026FF',
 
@@ -95,7 +96,7 @@ export const PIECE_COLORS: Readonly<Record<PieceType, string>> = {
   Z: COLORS.DARK_BLOOD_RED,
   J: COLORS.TEAL,
   L: COLORS.ELECTRIC_BLUE,
-  SIX: COLORS.ELECTRIC_MAGENTA,
+  SIX: COLORS.LIGHT_MAGENTA,
   SEVEN: COLORS.BUBBLEGUM_PINK,
 } as const;
 
